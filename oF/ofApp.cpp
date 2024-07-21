@@ -2,17 +2,23 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    ofSetWindowShape(1920, 1080);
+    ofSetWindowShape(1620, 1080);
     
     // Load the videos
-    ofVideoPlayer v1, v2, v3;
+    ofVideoPlayer v1, v2, v3, v4, v5, v6;
     v1.load("video1.mp4");
     v2.load("video2.mp4");
     v3.load("video3.mp4");
+    v4.load("video4.mp4");
+    v5.load("video5.mp4");
+    v6.load("video6.mp4");
 
     vVec.push_back(v1);
     vVec.push_back(v2);
     vVec.push_back(v3);
+    vVec.push_back(v4);
+    vVec.push_back(v5);
+    vVec.push_back(v6);
 
     currentVideoIndex = 0;
     isVideoPlaying = false;
@@ -21,24 +27,16 @@ void ofApp::setup(){
     serial.setup("/dev/tty.usbserial", 9600);
     ofLogNotice() << "Serial Setup";
 
-    // Start playing the first video
-//    playNextVideo();
-//    isVideoPlaying = true;
+    // Load background and object images
+    for (int i = 0; i < 6; ++i) {
+        backgroundImages[i].load("s" + ofToString(i + 1) + ".png");
+        objectImages[i].load("t" + ofToString(i + 1) + ".png");
+        objectCued[i] = false;
+    }
 
-    // Calculate the aspect ratio based on the first video's dimensions
-//    aspectRatio = vVec[currentVideoIndex].getWidth() / vVec[currentVideoIndex].getHeight();
-//    videoWidth = ofGetWidth();
-//    videoHeight = videoWidth / aspectRatio;
-//    ofSetWindowShape(videoWidth, videoHeight);
-    
-    // Initialize pointers and selection states
-    pointerIndex = 0;
-    std::fill(std::begin(videoSelected), std::end(videoSelected), false);
-    playButtonVisible = false;
-    playButtonRect.set(840, 900, 240, 60); // Position and size of the play button
-    
-    ofLogNotice() << "Setup completed. Playing first video.";
+    selectedObject = 0; // Default selection is 1 (index 0)
 
+    ofLogNotice() << "Setup completed. Initial state.";
 }
 
 //--------------------------------------------------------------
@@ -82,48 +80,24 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-    if (!isVideoPlaying) {
-        // Draw thumbnails
-        float thumbnailWidth = 320;
-        float thumbnailHeight = 320;
-        for (int i = 0; i < vVec.size(); ++i) {
-            float x = i * (thumbnailWidth + 40);
-            float y = 200;
-            vVec[i].draw(x, y, thumbnailWidth, thumbnailHeight);
+    // Draw the selected background image
+    backgroundImages[selectedObject].draw(0, 0);
 
-            if (videoSelected[i]) {
-                ofSetColor(255, 165, 0, 100); // Orange tint for selected thumbnails
-                ofDrawRectangle(x, y, thumbnailWidth, thumbnailHeight);
-                ofSetColor(255); // Reset color
-            }
-
-            if (i == pointerIndex) {
-                ofNoFill();
-                ofSetColor(255, 165, 0);
-                ofSetLineWidth(5);
-                ofDrawRectangle(x, y, thumbnailWidth, thumbnailHeight);
-                ofFill();
-                ofSetColor(255); // Reset color
-            }
+    // Draw object images with appropriate opacity
+    for (int i = 0; i < 6; ++i) {
+        if (i == selectedObject) {
+            ofSetColor(255, 255); // Full opacity
+        } else if (objectCued[i]) {
+            ofSetColor(255, 128); // 50% opacity
+        } else {
+            ofSetColor(255, 77); // 30% opacity
         }
+        objectImages[i].draw(0, 0);
+    }
 
-        if (playButtonVisible) {
-            ofSetColor(255, 165, 0);
-            ofDrawRectangle(playButtonRect);
-            ofSetColor(0);
-            ofDrawBitmapString("PLAY", playButtonRect.x + 80, playButtonRect.y + 40);
-            ofSetColor(255); // Reset color
+    ofSetColor(255); // Reset color
 
-            if (pointerIndex == 3) {
-                ofNoFill();
-                ofSetColor(255, 165, 0);
-                ofSetLineWidth(5);
-                ofDrawRectangle(playButtonRect);
-                ofFill();
-                ofSetColor(255); // Reset color
-            }
-        }
-    } else {
+    if (isVideoPlaying) {
         // Draw the current video
         vVec[currentVideoIndex].draw(0, 0, videoWidth, videoHeight);
     }
@@ -139,7 +113,6 @@ void ofApp::exit(){
 void ofApp::keyPressed(int key){
 
 }
-
 
 //--------------------------------------------------------------
 void ofApp::mouseEntered(int x, int y){
@@ -179,60 +152,34 @@ void ofApp::processSerialInput() {
     if (!serialData.empty()) {
         ofLogNotice() << "Received serial input: " << serialData;
 
-        if (serialData == "4") {
-            movePointerRight();
-        } else if (serialData == "5") {
-            movePointerLeft();
-        } else if (serialData == "Button Pressed") {
-            selectItem();
+        if (serialData == "1") {
+            selectedObject = (selectedObject + 1) % 6;
+        } else if (serialData == "2") {
+            selectedObject = (selectedObject - 1 + 6) % 6;
+        } else if (serialData == "0") {
+            if (objectCued[selectedObject]) {
+                // Remove from queue
+                objectCued[selectedObject] = false;
+                videoOrder.erase(std::remove(videoOrder.begin(), videoOrder.end(), selectedObject), videoOrder.end());
+            } else {
+                // Add to queue
+                objectCued[selectedObject] = true;
+                videoOrder.push_back(selectedObject);
+            }
         }
-    }
-}
 
-//--------------------------------------------------------------
-void ofApp::movePointerRight() {
-    if (playButtonVisible) {
-        pointerIndex = (pointerIndex + 1) % 4;
-    } else {
-        pointerIndex = (pointerIndex + 1) % 3;
-    }
-    ofLogNotice() << "Pointer moved to index: " << pointerIndex;
-}
-
-//--------------------------------------------------------------
-void ofApp::movePointerLeft() {
-    if (playButtonVisible) {
-        pointerIndex = (pointerIndex - 1 + 4) % 4;
-    } else {
-        pointerIndex = (pointerIndex - 1 + 3) % 3;
-    }
-    ofLogNotice() << "Pointer moved to index: " << pointerIndex;
-}
-
-//--------------------------------------------------------------
-void ofApp::selectItem() {
-    if (pointerIndex < 3) {
-        videoSelected[pointerIndex] = true;
-        videoOrder.push_back(pointerIndex + 1); // Store video order based on selection
-        ofLogNotice() << "Video " << pointerIndex + 1 << " selected";
-
-        // Check if all videos are selected
-        bool allSelected = true;
-        for (int i = 0; i < 3; ++i) {
-            if (!videoSelected[i]) {
-                allSelected = false;
+        // Check if all objects are cued
+        bool allCued = true;
+        for (int i = 0; i < 6; ++i) {
+            if (!objectCued[i]) {
+                allCued = false;
                 break;
             }
         }
 
-        if (allSelected) {
-            playButtonVisible = true;
+        if (allCued && !isVideoPlaying) {
+            currentVideoIndex = videoOrder[0];
+            playNextVideo();
         }
-    } else if (pointerIndex == 3 && playButtonVisible) {
-        currentVideoIndex = videoOrder[0] - 1;
-        playNextVideo();
-        isVideoPlaying = true;
-        playButtonVisible = false;
-        ofLogNotice() << "Play button pressed. Starting video sequence.";
     }
 }

@@ -22,24 +22,27 @@ class ofApp : public ofBaseApp{
     void playNextVideo();
     void processSerialInput();
     
-    void movePointerRight();
-    void movePointerLeft();
-    void selectItem();
 
-    vector<ofVideoPlayer> vVec;
-    vector<int> videoOrder;
-    int currentVideoIndex;
-    bool isVideoPlaying;
-    bool isVideoDone;
-    
-    float videoWidth;
-    float videoHeight;
-    float aspectRatio;
-    
-    ofSerial serial;
-    
-    int pointerIndex;
-    bool videoSelected[3];
-    bool playButtonVisible;
-    ofRectangle playButtonRect;
+        vector<ofVideoPlayer> vVec;
+        vector<int> videoOrder;
+        int currentVideoIndex;
+        bool isVideoPlaying;
+        bool isVideoDone;
+
+        float videoWidth;
+        float videoHeight;
+        float aspectRatio;
+
+        ofSerial serial;
+
+        int pointerIndex;
+        bool videoSelected[3];
+        bool playButtonVisible;
+        ofRectangle playButtonRect;
+
+        // New variables
+        ofImage backgroundImages[6];
+        ofImage objectImages[6];
+        int selectedObject;
+        bool objectCued[6];
 };
