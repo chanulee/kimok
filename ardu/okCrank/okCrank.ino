@@ -19,6 +19,8 @@ int buttonState = 0;
 
 // Variables for angle calculation and movement detection
 float previousAngle = 0.0;
+float criteriaAngle = 0.0;
+int previousZone = 0;
 const float movementThreshold = 15.0; // Adjust this threshold as needed
 
 
@@ -65,36 +67,49 @@ void loop() {
   buttonState = digitalRead(buttonPin);
   if (buttonState == HIGH) {
     // Send a signal when the button is pressed
-    Serial.println("Button Pressed");
+    Serial.println("0");
   }
 
   // Checks if mag channels are on - turns on in setup
   if((sensor.getMagneticChannel() != 0) && (sensor.getAngleEn() != 0)) {
-    float angleCalculation = sensor.getAngleResult();
+    float currentAngle = sensor.getAngleResult(); // Corrected variable name
 
     Serial.print("XYX: ");
-    Serial.println(angleCalculation, 3);
+    Serial.println(currentAngle, 3);
 
     // Calculate the change in angle
     float angleChange = currentAngle - previousAngle;
 
-    // Normalize the angle change to handle wrap-around
-    if (angleChange > 180.0) {
-      angleChange -= 360.0;
-    } else if (angleChange < -180.0) {
-      angleChange += 360.0;
+    if (angleChange != 0) {
+      float delta = currentAngle - criteriaAngle;
+      if (delta < 0) delta += 360; // Normalize delta to be within 0-360
+
+      int currentZone = 0;
+      if (delta >= 0 && delta <= 120) {
+        currentZone = 1;
+      } else if (delta > 120 && delta <= 240) {
+        currentZone = 2;
+      } else if (delta > 240 && delta <= 360) {
+        currentZone = 3;
+      }
+
+      if (previousZone != 0) {
+        if ((previousZone == 1 && currentZone == 2) || 
+            (previousZone == 2 && currentZone == 3) || 
+            (previousZone == 3 && currentZone == 1)) {
+          Serial.println("1"); // Zone number increases
+        } else if ((previousZone == 3 && currentZone == 2) || 
+                   (previousZone == 2 && currentZone == 1) || 
+                   (previousZone == 1 && currentZone == 3)) {
+          Serial.println("2"); // Zone number decreases
+        }
+      }
+
+      previousZone = currentZone;
+    } else {
+      criteriaAngle = currentAngle;
     }
 
-    // Detect significant crank movements
-    if (angleChange > movementThreshold) {
-      // Detected significant clockwise movement
-      Serial.println("4"); // Send '4' to indicate clockwise movement
-    } else if (angleChange < -movementThreshold) {
-      // Detected significant counterclockwise movement
-      Serial.println("5"); // Send '5' to indicate counterclockwise movement
-    }
-
-    // Update previous angle
     previousAngle = currentAngle;
 
   } else {
