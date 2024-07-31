@@ -20,9 +20,9 @@ class ofApp : public ofBaseApp{
         void skipToNextVideo();
         bool allObjectsCued();
         void resetState();
-        void processSerialInput();
+        void processSerialInput(); // Added method declaration
         void handleInput(const string& input);
-
+    
         vector<ofVideoPlayer> vVec;
         vector<int> videoOrder;
         int currentVideoIndex;
