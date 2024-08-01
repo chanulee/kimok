@@ -5,7 +5,8 @@ void ofApp::setup(){
     ofSetWindowShape(1920, 1080); // Set fixed window size
     
     // Load the videos
-    ofVideoPlayer v1, v2, v3, v4, v5, v6;
+    ofVideoPlayer v0, v1, v2, v3, v4, v5, v6;
+    v0.load("video0.mp4");
     v1.load("video1.mp4");
     v2.load("video2.mp4");
     v3.load("video3.mp4");
@@ -13,6 +14,7 @@ void ofApp::setup(){
     v5.load("video5.mp4");
     v6.load("video6.mp4");
 
+    vVec.push_back(v0);
     vVec.push_back(v1);
     vVec.push_back(v2);
     vVec.push_back(v3);
@@ -20,12 +22,15 @@ void ofApp::setup(){
     vVec.push_back(v5);
     vVec.push_back(v6);
 
+    // Add v0 to the video order
+    videoOrder.push_back(0);
+
     // Load the BGM
-    bgmPlayer.load("bgm.mp3");
+    bgmPlayer.load("bgm.wav");
     bgmPlayer.setLoop(true); // Loop the BGM
 
     // Setup serial communication
-    serial.setup("/dev/tty.usbserial", 9600); // Adjust the port name as needed
+    serial.setup("COM5", 9600); // COM5 for windows
 
     resetState(); // Initialize the state
 
@@ -148,6 +153,7 @@ void ofApp::resetState() {
     currentVideoIndex = 0;
     isVideoPlaying = false;
     videoOrder.clear();
+    videoOrder.push_back(0); // Ensure v0 is always first
     selectedObject = 0;
 
     for (int i = 0; i < 6; ++i) {
