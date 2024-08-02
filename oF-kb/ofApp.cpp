@@ -5,8 +5,7 @@ void ofApp::setup(){
     ofSetWindowShape(1920, 1080); // Set fixed window size
     
     // Load the videos
-    ofVideoPlayer v0, v1, v2, v3, v4, v5, v6;
-    v0.load("video0.mp4");
+    ofVideoPlayer v1, v2, v3, v4, v5, v6;
     v1.load("video1.mp4");
     v2.load("video2.mp4");
     v3.load("video3.mp4");
@@ -14,7 +13,6 @@ void ofApp::setup(){
     v5.load("video5.mp4");
     v6.load("video6.mp4");
 
-    vVec.push_back(v0);
     vVec.push_back(v1);
     vVec.push_back(v2);
     vVec.push_back(v3);
@@ -22,15 +20,12 @@ void ofApp::setup(){
     vVec.push_back(v5);
     vVec.push_back(v6);
 
-    // Add v0 to the video order
-    videoOrder.push_back(0);
-
     // Load the BGM
     bgmPlayer.load("bgm.wav");
     bgmPlayer.setLoop(true); // Loop the BGM
 
     // Setup serial communication
-    serial.setup("COM5", 9600); // COM5 for windows
+    serial.setup("COM5", 9600); // Adjust the port name as needed
 
     resetState(); // Initialize the state
 
@@ -40,9 +35,10 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
     if (isVideoPlaying) {
-        vVec[currentVideoIndex].update();
-        if (vVec[currentVideoIndex].getPosition() >= 0.99) {  // Check if video is almost done
-            ofLogNotice() << "Video " << currentVideoIndex + 1 << " done.";
+        int currentVideo = videoOrder[currentVideoIndex];
+        vVec[currentVideo].update();
+        if (vVec[currentVideo].getPosition() >= 0.99) {  // Check if video is almost done
+            ofLogNotice() << "Video " << currentVideo + 1 << " done.";
             skipToNextVideo();
         }
     }
@@ -76,7 +72,8 @@ void ofApp::draw() {
 
     if (isVideoPlaying) {
         // Draw the current video
-        vVec[currentVideoIndex].draw(0, 0, 1920, 1080);
+        int currentVideo = videoOrder[currentVideoIndex];
+        vVec[currentVideo].draw(0, 0, 1920, 1080);
     }
 }
 
@@ -116,25 +113,33 @@ void ofApp::windowResized(int w, int h){
 }
 
 //--------------------------------------------------------------
-void ofApp::playNextVideo(){
-    vVec[currentVideoIndex].setLoopState(OF_LOOP_NONE); // Ensure looping is disabled
-    vVec[currentVideoIndex].setPosition(0); // Start from the beginning
-    vVec[currentVideoIndex].play();
-    isVideoPlaying = true; // Set isVideoPlaying to true
+void ofApp::playNextVideo() {
+    if (currentVideoIndex < videoOrder.size()) {
+        int videoToPlay = videoOrder[currentVideoIndex];
+        vVec[videoToPlay].setLoopState(OF_LOOP_NONE); // Ensure looping is disabled
+        vVec[videoToPlay].setPosition(0); // Start from the beginning
+        vVec[videoToPlay].play();
+        isVideoPlaying = true;
 
-    ofLogNotice() << "Playing video " << currentVideoIndex + 1; // Debugging print
+        ofLogNotice() << "Playing video " << videoToPlay + 1; // Debugging print
+    } else {
+        isVideoPlaying = false;
+        bgmPlayer.stop(); // Stop the BGM
+        resetState(); // Reset to the initial state
+        ofLogNotice() << "All videos played. Resetting.";
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::skipToNextVideo() {
-    currentVideoIndex++; // Move to the next video
+    currentVideoIndex++;
     if (currentVideoIndex < videoOrder.size()) {
         playNextVideo();
-    } else { // If it's the last video
-        ofLogNotice() << "All videos played. Resetting.";
+    } else {
         isVideoPlaying = false;
         bgmPlayer.stop(); // Stop the BGM
         resetState(); // Reset to the initial state
+        ofLogNotice() << "All videos played. Resetting.";
     }
 }
 
@@ -153,7 +158,6 @@ void ofApp::resetState() {
     currentVideoIndex = 0;
     isVideoPlaying = false;
     videoOrder.clear();
-    videoOrder.push_back(0); // Ensure v0 is always first
     selectedObject = 0;
 
     for (int i = 0; i < 6; ++i) {
@@ -194,19 +198,19 @@ void ofApp::handleInput(const string& input) {
                 // Add to queue
                 objectCued[selectedObject] = true;
                 videoOrder.push_back(selectedObject);
+            }
 
-                // Move to the next un-cued object
-                if (!allObjectsCued()) {
-                    do {
-                        selectedObject = (selectedObject + 1) % 6;
-                    } while (objectCued[selectedObject]);
-                }
+            // Move to the next un-cued object
+            if (!allObjectsCued()) {
+                do {
+                    selectedObject = (selectedObject + 1) % 6;
+                } while (objectCued[selectedObject]);
             }
         }
 
-        // Check if all objects are cued
+        // Check if all objects are cued and no video is playing
         if (allObjectsCued() && !isVideoPlaying) {
-            currentVideoIndex = videoOrder[0];
+            currentVideoIndex = 0;
             playNextVideo();
             bgmPlayer.play(); // Start playing the BGM
         }
