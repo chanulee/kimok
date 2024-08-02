@@ -87,11 +87,11 @@ void ofApp::exit(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    if (key == OF_KEY_RIGHT) {
+    if (key == 'b') {
         do {
             selectedObject = (selectedObject + 1) % 6;
         } while (objectCued[selectedObject] && !allObjectsCued());
-    } else if (key == OF_KEY_LEFT) {
+    } else if (key == 'a') {
         do {
             selectedObject = (selectedObject - 1 + 6) % 6;
         } while (objectCued[selectedObject] && !allObjectsCued());
