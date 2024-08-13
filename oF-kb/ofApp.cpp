@@ -4,7 +4,12 @@
 void ofApp::setup(){
     ofSetWindowShape(1920, 1080); // Set fixed window size
     
-    // Load the videos
+    // Load the intro video
+    ofVideoPlayer introVid;
+    introVid.load("video0.mp4");
+    vVec.push_back(introVid);
+
+    // Load the other videos
     ofVideoPlayer v1, v2, v3, v4, v5, v6;
     v1.load("video1.mp4");
     v2.load("video2.mp4");
@@ -121,7 +126,7 @@ void ofApp::playNextVideo() {
         vVec[videoToPlay].play();
         isVideoPlaying = true;
 
-        ofLogNotice() << "Playing video " << videoToPlay + 1; // Debugging print
+        ofLogNotice() << "Playing video " << videoToPlay + 1 << " at index " << currentVideoIndex; // Debugging print
     } else {
         isVideoPlaying = false;
         bgmPlayer.stop(); // Stop the BGM
@@ -133,6 +138,7 @@ void ofApp::playNextVideo() {
 //--------------------------------------------------------------
 void ofApp::skipToNextVideo() {
     currentVideoIndex++;
+    ofLogNotice() << "Skipping to next video. Current index: " << currentVideoIndex;
     if (currentVideoIndex < videoOrder.size()) {
         playNextVideo();
     } else {
@@ -159,6 +165,9 @@ void ofApp::resetState() {
     isVideoPlaying = false;
     videoOrder.clear();
     selectedObject = 0;
+
+    // Add the intro video to the order
+    videoOrder.push_back(0);
 
     for (int i = 0; i < 6; ++i) {
         objectCued[i] = false;
@@ -193,11 +202,11 @@ void ofApp::handleInput(const string& input) {
             if (objectCued[selectedObject]) {
                 // Remove from queue
                 objectCued[selectedObject] = false;
-                videoOrder.erase(std::remove(videoOrder.begin(), videoOrder.end(), selectedObject), videoOrder.end());
+                videoOrder.erase(std::remove(videoOrder.begin(), videoOrder.end(), selectedObject + 1), videoOrder.end());
             } else {
                 // Add to queue
                 objectCued[selectedObject] = true;
-                videoOrder.push_back(selectedObject);
+                videoOrder.push_back(selectedObject + 1);
             }
 
             // Move to the next un-cued object
